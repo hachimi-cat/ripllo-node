@@ -474,11 +474,12 @@ export class RiplloClient {
 
   // ─── API keys ────────────────────────────────────────────────
   apiKeys = {
-    list: () => this.request<{ keys: unknown[] }>({ method: 'GET', path: '/api/v1/api-keys' }),
-    create: (input: { description?: string; scope?: string } = {}) =>
-      this.request<{ key: Record<string, unknown> }>({ method: 'POST', path: '/api/v1/api-keys', body: input, idempotencyKey: this.genIdem() }),
+    list: () => this.request<{ apiKeys: unknown[] }>({ method: 'GET', path: '/api/v1/api-keys' }),
+    /** The `secret` comes back on this response only — it is never readable again. */
+    create: (input: { name: string; scopes?: ('read' | 'write' | 'admin')[] }) =>
+      this.request<{ apiKey: Record<string, unknown>; secret: string }>({ method: 'POST', path: '/api/v1/api-keys', body: input, idempotencyKey: this.genIdem() }),
     revoke: (id: string) =>
-      this.request<{ revoked: boolean }>({ method: 'POST', path: `/api/v1/api-keys/${id}/revoke`, body: {} }),
+      this.request<{ apiKey: { id: string; revokedAt: string } }>({ method: 'POST', path: `/api/v1/api-keys/${id}/revoke`, body: {} }),
   };
 
   // ─── Webhook endpoints + events ─────────────────────────────
@@ -524,12 +525,14 @@ export class RiplloClient {
 
   // ─── Uploads (merchant + creator/affiliator scoped) ─────────
   uploads = {
-    signMerchant: (input: { filename: string; contentType: string; bytes?: number }) =>
-      this.request<{ url: string; key: string; headers?: Record<string, string> }>({ method: 'POST', path: '/api/v1/uploads/sign-merchant', body: input }),
+    /** `kind` must be `compose-asset` or `merchant-logo`; the key is server-generated. */
+    signMerchant: (input: { kind: string; contentType: string }) =>
+      this.request<{ url: string; key: string; contentType: string; expiresIn: number }>({ method: 'POST', path: '/api/v1/uploads/sign-merchant', body: input }),
     getMerchantAsset: (params: { key: string }) =>
       this.request<Record<string, unknown>>({ method: 'GET', path: `/api/v1/uploads/merchant-asset${qs(params)}` }),
-    sign: (input: { filename: string; contentType: string }) =>
-      this.request<{ url: string; key: string }>({ method: 'POST', path: '/api/v1/uploads/sign', body: input }),
+    /** `kind` is one of kyc-id | kyc-selfie | profile-avatar | deliverable-asset. */
+    sign: (input: { kind: string; contentType: string; collaborationId?: string; deliverableId?: string }) =>
+      this.request<{ url: string; key: string; contentType: string; expiresIn: number }>({ method: 'POST', path: '/api/v1/uploads/sign', body: input }),
     getAvatar: (params: { key?: string } = {}) =>
       this.request<Record<string, unknown>>({ method: 'GET', path: `/api/v1/uploads/avatar${qs(params)}` }),
     getDeliverable: (params: { key: string }) =>
@@ -590,11 +593,15 @@ export class RiplloClient {
     list: () => this.request<{ collaborations: unknown[] }>({ method: 'GET', path: '/api/v1/collaborations' }),
     get: (id: string) =>
       this.request<Record<string, unknown>>({ method: 'GET', path: `/api/v1/collaborations/${id}` }),
-    uploadDeliverableKey: (id: string, deliverableId: string, input: { filename: string; contentType: string }) =>
-      this.request<{ url: string; key: string }>({ method: 'POST', path: `/api/v1/collaborations/${id}/deliverables/${deliverableId}/upload-key`, body: input }),
+    /** Records an ALREADY-uploaded object key as the draft; the route takes
+     *  `{ originalKey }` (uploadKeySchema), not filename/contentType. Get the
+     *  key from `uploads.sign({ kind: 'deliverable-asset', ... })` first. */
+    uploadDeliverableKey: (id: string, deliverableId: string, input: { originalKey: string }) =>
+      this.request<Record<string, unknown>>({ method: 'POST', path: `/api/v1/collaborations/${id}/deliverables/${deliverableId}/upload-key`, body: input }),
     approveDeliverable: (id: string, deliverableId: string) =>
       this.request<Record<string, unknown>>({ method: 'POST', path: `/api/v1/collaborations/${id}/deliverables/${deliverableId}/approve`, body: {} }),
-    rejectDeliverable: (id: string, deliverableId: string, input: { reason?: string } = {}) =>
+    /** reviewSchema is `{ notes?: string }` — a `reason` field is dropped. */
+    rejectDeliverable: (id: string, deliverableId: string, input: { notes?: string } = {}) =>
       this.request<Record<string, unknown>>({ method: 'POST', path: `/api/v1/collaborations/${id}/deliverables/${deliverableId}/reject`, body: input }),
     publishDeliverable: (id: string, deliverableId: string) =>
       this.request<Record<string, unknown>>({ method: 'POST', path: `/api/v1/collaborations/${id}/deliverables/${deliverableId}/published`, body: {} }),
@@ -607,10 +614,10 @@ export class RiplloClient {
     cancel: (id: string) => this.collaborations.cancelCollaboration(id),
     deliverables: {
       approve: (id: string, deliverableId: string) => this.collaborations.approveDeliverable(id, deliverableId),
-      reject: (id: string, deliverableId: string, input: { reason?: string } = {}) =>
+      reject: (id: string, deliverableId: string, input: { notes?: string } = {}) =>
         this.collaborations.rejectDeliverable(id, deliverableId, input),
       publish: (id: string, deliverableId: string) => this.collaborations.publishDeliverable(id, deliverableId),
-      uploadKey: (id: string, deliverableId: string, input: { filename: string; contentType: string }) =>
+      uploadKey: (id: string, deliverableId: string, input: { originalKey: string }) =>
         this.collaborations.uploadDeliverableKey(id, deliverableId, input),
     },
   };
@@ -646,7 +653,8 @@ export class RiplloClient {
   };
 
   contacts = {
-    list: (params: { limit?: number; cursor?: string; search?: string } = {}) =>
+    /** GET /contacts — free-text filter is `q` (email / first / last / phone). */
+    list: (params: { limit?: number; cursor?: string; q?: string } = {}) =>
       this.request<{ contacts: unknown[]; nextCursor?: string }>({ method: 'GET', path: `/api/v1/contacts${qs(params)}` }),
     import: (input: Record<string, unknown>) =>
       this.request<{ imported: number }>({ method: 'POST', path: '/api/v1/contacts/import', body: input }),
@@ -690,7 +698,8 @@ export class RiplloClient {
       this.request<Record<string, unknown>>({ method: 'PATCH', path: `/api/v1/broadcasts/${id}`, body: patch }),
     send: (id: string, input: Record<string, unknown> = {}) =>
       this.request<Record<string, unknown>>({ method: 'POST', path: `/api/v1/broadcasts/${id}/send`, body: input, idempotencyKey: this.genIdem() }),
-    sendTest: (id: string, input: { to: string }) =>
+    /** POST /:id/send-test — the server reads `provider` + `recipient`. */
+    sendTest: (id: string, input: { provider: string; recipient: string }) =>
       this.request<Record<string, unknown>>({ method: 'POST', path: `/api/v1/broadcasts/${id}/send-test`, body: input }),
     listTemplates: () =>
       this.request<{ templates: unknown[] }>({ method: 'GET', path: '/api/v1/broadcasts/templates' }),
@@ -872,8 +881,12 @@ export class RiplloClient {
   };
 
   affiliates = {
-    list: (params: { limit?: number; cursor?: string } = {}) =>
-      this.request<{ affiliates: unknown[]; nextCursor?: string }>({ method: 'GET', path: `/api/v1/affiliates${qs(params)}` }),
+    /** The public affiliator directory. The collection lives at
+     *  `/affiliates/affiliators` — the router has no root route, so the
+     *  old `/api/v1/affiliates` path 404'd — and it answers
+     *  `{ data, cursor, hasMore }`. */
+    list: (params: { limit?: number; cursor?: string; channel?: string; country?: string } = {}) =>
+      this.request<{ data: unknown[]; cursor: string | null; hasMore: boolean }>({ method: 'GET', path: `/api/v1/affiliates/affiliators${qs(params)}` }),
   };
 
   kyc = {
