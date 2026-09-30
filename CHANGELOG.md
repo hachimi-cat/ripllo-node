@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.2
+
+- `client.api` regenerated from the API spec: 208 routes (operator-only platform sweeps
+  and the e2e helpers are no longer part of the public surface).
+- Signatures: the API now accepts a request signed over the exact bytes sent, so bodies
+  with non-ASCII text, floats like `1.0` or an empty `{}` no longer fail with
+  `BAD_SIGNATURE` (server fix; this SDK already signed what it sent).
+
 ## 0.5.0
 
 Corrects typed methods that pointed at routes the backend never served, or

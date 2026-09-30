@@ -7,7 +7,7 @@ export interface ApigenTransport {
   apigenRequest(method: string, path: string, query: Record<string, unknown> | undefined, body: unknown): Promise<unknown>;
 }
 
-/** All 212 feature routes of the Ripllo API. */
+/** All 208 feature routes of the Ripllo API. */
 export class GeneratedApi {
   constructor(private readonly client: ApigenTransport) {}
 
@@ -896,6 +896,11 @@ export class GeneratedApi {
     return this.call("PUT", `/api/v1/integrations/email`, query, all);
   }
 
+  /** List status (GET /api/v1/integrations/status) */
+  integrationsStatus(): Promise<unknown> {
+    return this.call("GET", `/api/v1/integrations/status`, {}, undefined);
+  }
+
   /** Create a kyc (POST /api/v1/kyc) */
   kycCreate(input: { "idType": "ktp" | "passport" | "driver_license"; "idNumber": string; "idImageKey": string; "selfieImageKey"?: string }): Promise<unknown> {
     const all: Record<string, unknown> = { ...(input ?? {}) };
@@ -1240,11 +1245,6 @@ export class GeneratedApi {
     return this.call("GET", `/api/v1/referrals/stats`, {}, undefined);
   }
 
-  /** Cross-tenant maintenance: expires pending attributions for EVERY workspace, so it is platform-admin only rather than merchant-scoped. (POST /api/v1/referrals/sweeps/expire-pending) */
-  referralsSweepsExpirePending(): Promise<unknown> {
-    return this.call("POST", `/api/v1/referrals/sweeps/expire-pending`, {}, undefined);
-  }
-
   /** List avatar (GET /api/v1/uploads/avatar) */
   uploadsAvatar(input?: { "key"?: unknown }): Promise<unknown> {
     const all: Record<string, unknown> = { ...(input ?? {}) };
@@ -1304,11 +1304,6 @@ export class GeneratedApi {
     return this.call("POST", `/api/v1/webhooks/endpoints`, query, all);
   }
 
-  /** Create a whatsapp (POST /api/v1/webhooks/engagement/whatsapp) */
-  webhooksCreateEngagementWhatsapp(): Promise<unknown> {
-    return this.call("POST", `/api/v1/webhooks/engagement/whatsapp`, {}, undefined);
-  }
-
   /** Delete an endpoint (DELETE /api/v1/webhooks/endpoints/{id}) */
   webhooksDeleteEndpoints(id: string): Promise<unknown> {
     return this.call("DELETE", `/api/v1/webhooks/endpoints/${encodeURIComponent(id)}`, {}, undefined);
@@ -1317,25 +1312,6 @@ export class GeneratedApi {
   /** List endpoints (GET /api/v1/webhooks/endpoints) */
   webhooksEndpoints(): Promise<unknown> {
     return this.call("GET", `/api/v1/webhooks/endpoints`, {}, undefined);
-  }
-
-  /** Create a resend (POST /api/v1/webhooks/engagement/resend) */
-  webhooksEngagementResend(): Promise<unknown> {
-    return this.call("POST", `/api/v1/webhooks/engagement/resend`, {}, undefined);
-  }
-
-  /** Create a sendgrid (POST /api/v1/webhooks/engagement/sendgrid) */
-  webhooksEngagementSendgrid(): Promise<unknown> {
-    return this.call("POST", `/api/v1/webhooks/engagement/sendgrid`, {}, undefined);
-  }
-
-  /** List whatsapp (GET /api/v1/webhooks/engagement/whatsapp) */
-  webhooksEngagementWhatsapp(input?: { "hub.challenge"?: unknown; "hub.verify_token"?: unknown }): Promise<unknown> {
-    const all: Record<string, unknown> = { ...(input ?? {}) };
-    const query: Record<string, unknown> = {};
-    query["hub.challenge"] = all["hub.challenge"]; delete all["hub.challenge"];
-    query["hub.verify_token"] = all["hub.verify_token"]; delete all["hub.verify_token"];
-    return this.call("GET", `/api/v1/webhooks/engagement/whatsapp`, query, undefined);
   }
 
   /** The three SDKs (`listEvents({ limit, cursor, type })` in node, python and go) and the dashboard call site have promised these params since they shipped; the server took none of them — a fixed `take: 5 (GET /api/v1/webhooks/events) */
