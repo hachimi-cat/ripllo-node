@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { GeneratedApi } from './api.generated.js';
 import {
   ApiEnvelope,
   RiplloError,
@@ -470,6 +471,24 @@ export class RiplloClient {
    */
   async passthrough<T = unknown>(method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE', path: string, body?: unknown): Promise<T> {
     return this.request<T>({ method, path, body });
+  }
+
+  /** Every feature route, one method each (generated from the API spec: api.generated.ts). */
+  readonly api: GeneratedApi = new GeneratedApi(this);
+
+  /** The call behind `client.api.*`: signed like every other request. */
+  async apigenRequest(method: string, path: string, query: Record<string, unknown> | undefined, body: unknown): Promise<unknown> {
+    const qs = query
+      ? new URLSearchParams(
+          Object.entries(query).map(([k, v]): [string, string] => [k, typeof v === 'string' ? v : JSON.stringify(v)]),
+        ).toString()
+      : '';
+    return this.request<unknown>({
+      method: method as 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+      path: qs ? `${path}?${qs}` : path,
+      body,
+      idempotencyKey: method === 'GET' ? undefined : this.genIdem(),
+    });
   }
 
   // ─── API keys ────────────────────────────────────────────────
