@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.0
+- A route read by id next to its list is named `get` + the list's name: `client.api.affiliatesGetAffiliators` (was `client.api.affiliatesAffiliators2`), `client.api.affiliatesGetPrograms` (was `client.api.affiliatesPrograms2`), `client.api.blogGetPublic` (was `client.api.blogPublic`), `client.api.blogGetPublic2` (was `client.api.blogPublic2`), `client.api.inboxGetThreads` (was `client.api.inboxThreads2`), `client.api.marketplaceGetCampaigns` (was `client.api.marketplaceCampaigns2`), `client.api.marketplaceGetCreators` (was `client.api.marketplaceCreators2`). Each old name stays as a deprecated alias.
+- Query fields the API refuses a request without are now required: `code` on GET /api/v1/creator-stats/connect/{platform}/callback, `state` on GET /api/v1/creator-stats/connect/{platform}/callback, `key` on GET /api/v1/uploads/avatar, `id` on GET /api/v1/uploads/deliverable, `key` on GET /api/v1/uploads/merchant-asset.
+
 ## 0.5.2
 
 - `client.api` regenerated from the API spec: 208 routes (operator-only platform sweeps
