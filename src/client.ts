@@ -511,8 +511,19 @@ export class RiplloClient {
       this.request<{ endpoint: Record<string, unknown> }>({ method: 'PATCH', path: `/api/v1/webhooks/endpoints/${id}`, body: patch }),
     deleteEndpoint: (id: string) =>
       this.request<{ deleted: boolean }>({ method: 'DELETE', path: `/api/v1/webhooks/endpoints/${id}` }),
-    listEvents: (params: { limit?: number; cursor?: string; type?: string } = {}) =>
+    /** The delivery log: one row per event per endpoint, newest first, each with its
+     *  `deliveryAttempts`. `type` takes a full type or its short form. */
+    listEvents: (params: { limit?: number; cursor?: string; type?: string; status?: 'pending' | 'sent' | 'failed'; endpointId?: string } = {}) =>
       this.request<{ events: unknown[]; nextCursor?: string }>({ method: 'GET', path: `/api/v1/webhooks/events${qs(params)}` }),
+    /** One delivery with every attempt made at it. */
+    getEvent: (id: string) =>
+      this.request<{ event: Record<string, unknown> }>({ method: 'GET', path: `/api/v1/webhooks/events/${encodeURIComponent(id)}` }),
+    /** One more attempt now at a delivery (202, `pending`); 409 when it is already queued or its endpoint is off. */
+    retryEvent: (id: string) =>
+      this.request<{ event: Record<string, unknown> }>({ method: 'POST', path: `/api/v1/webhooks/events/${encodeURIComponent(id)}/retry`, body: {} }),
+    /** Every event type Ripllo emits, with what fires it. */
+    listEventTypes: () =>
+      this.request<{ types: { type: string; description: string }[] }>({ method: 'GET', path: '/api/v1/webhooks/event-types' }),
   };
 
   // ─── Audit log ───────────────────────────────────────────────

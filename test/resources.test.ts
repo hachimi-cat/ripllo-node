@@ -33,6 +33,20 @@ describe('v0.2.0 expansion', () => {
     await h.client.webhooks.listEndpoints();
     expect(h.captured[0]!.url).toContain('/api/v1/webhooks/endpoints');
   });
+  it('webhooks: the delivery log — list with filters, get one, retry, event types', async () => {
+    await h.client.webhooks.listEvents({ status: 'failed', endpointId: 'ep1', type: 'ripllo.contact.created.v1', limit: 10 });
+    const list = new URL(h.captured[0]!.url);
+    expect(list.pathname).toBe('/api/v1/webhooks/events');
+    expect(Object.fromEntries(list.searchParams)).toEqual({ status: 'failed', endpointId: 'ep1', type: 'ripllo.contact.created.v1', limit: '10' });
+    await h.client.webhooks.getEvent('ev 1');
+    expect(h.captured[1]).toMatchObject({ method: 'GET' });
+    expect(h.captured[1]!.url).toContain('/api/v1/webhooks/events/ev%201');
+    await h.client.webhooks.retryEvent('ev1');
+    expect(h.captured[2]).toMatchObject({ method: 'POST' });
+    expect(h.captured[2]!.url).toContain('/api/v1/webhooks/events/ev1/retry');
+    await h.client.webhooks.listEventTypes();
+    expect(h.captured[3]!.url).toContain('/api/v1/webhooks/event-types');
+  });
   it('billing.checkout POSTs', async () => {
     await h.client.billing.checkout({ planId: 'pro' });
     expect(h.captured[0]!.url).toContain('/api/v1/billing/checkout');

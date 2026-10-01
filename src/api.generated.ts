@@ -7,7 +7,7 @@ export interface ApigenTransport {
   apigenRequest(method: string, path: string, query: Record<string, unknown> | undefined, body: unknown): Promise<unknown>;
 }
 
-/** All 207 feature routes of the Ripllo API. */
+/** All 210 feature routes of the Ripllo API. */
 export class GeneratedApi {
   constructor(private readonly client: ApigenTransport) {}
 
@@ -1320,14 +1320,31 @@ export class GeneratedApi {
     return this.call("GET", `/api/v1/webhooks/endpoints`, {}, undefined);
   }
 
-  /** The three SDKs (`listEvents({ limit, cursor, type })` in node, python and go) and the dashboard call site have promised these params since they shipped; the server took none of them — a fixed `take: 5 (GET /api/v1/webhooks/events) */
-  webhooksEvents(input?: { "cursor"?: unknown; "limit"?: unknown; "type"?: unknown }): Promise<unknown> {
+  /** The event types an endpoint can subscribe to — every type Ripllo emits, with what fires it (lib/events.ts). (GET /api/v1/webhooks/event-types) */
+  webhooksEventTypes(): Promise<unknown> {
+    return this.call("GET", `/api/v1/webhooks/event-types`, {}, undefined);
+  }
+
+  /** List webhook deliveries — one row per event per endpoint, newest first, each with its status (pending, sent, failed), attempt count, next retry and every attempt made (`deliveryAttempts`). (GET /api/v1/webhooks/events) */
+  webhooksEvents(input?: { "cursor"?: unknown; "endpointId"?: unknown; "limit"?: unknown; "status"?: unknown; "type"?: unknown }): Promise<unknown> {
     const all: Record<string, unknown> = { ...(input ?? {}) };
     const query: Record<string, unknown> = {};
     query["cursor"] = all["cursor"]; delete all["cursor"];
+    query["endpointId"] = all["endpointId"]; delete all["endpointId"];
     query["limit"] = all["limit"]; delete all["limit"];
+    query["status"] = all["status"]; delete all["status"];
     query["type"] = all["type"]; delete all["type"];
     return this.call("GET", `/api/v1/webhooks/events`, query, undefined);
+  }
+
+  /** Retry a webhook delivery. (POST /api/v1/webhooks/events/{id}/retry) */
+  webhooksEventsRetry(id: string): Promise<unknown> {
+    return this.call("POST", `/api/v1/webhooks/events/${encodeURIComponent(id)}/retry`, {}, undefined);
+  }
+
+  /** Get a webhook delivery, with every attempt made at it. (GET /api/v1/webhooks/events/{id}) */
+  webhooksGetEvents(id: string): Promise<unknown> {
+    return this.call("GET", `/api/v1/webhooks/events/${encodeURIComponent(id)}`, {}, undefined);
   }
 
   /** Update an endpoint (PATCH /api/v1/webhooks/endpoints/{id}) */

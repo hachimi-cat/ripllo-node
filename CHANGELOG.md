@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.0
+- Webhooks are delivered: Ripllo now POSTs every event your endpoints subscribe to, signed `Ripllo-Signature: t=…,v1=…` — what `verifyWebhook` already checked — with retries (1 min … 12 h), a delivery log and auto-disable for endpoints that keep failing. 29 more event types are emitted (32 in all, with loyalty): discount codes, referrals, abandoned carts, contacts, lists, channels, billing, broadcasts and webhook endpoints.
+- `webhooks.listEvents` takes `status` and `endpointId` (the server now reads every filter and pages with `nextCursor`); new `webhooks.getEvent(id)`, `webhooks.retryEvent(id)` and `webhooks.listEventTypes()`.
+- `client.api`: `webhooksGetEvents(id)`, `webhooksEventsRetry(id)`, `webhooksEventTypes()` (regenerated).
+
 ## 0.6.0
 - A route read by id next to its list is named `get` + the list's name: `client.api.affiliatesGetAffiliators` (was `client.api.affiliatesAffiliators2`), `client.api.affiliatesGetPrograms` (was `client.api.affiliatesPrograms2`), `client.api.blogGetPublic` (was `client.api.blogPublic`), `client.api.blogGetPublic2` (was `client.api.blogPublic2`), `client.api.inboxGetThreads` (was `client.api.inboxThreads2`), `client.api.marketplaceGetCampaigns` (was `client.api.marketplaceCampaigns2`), `client.api.marketplaceGetCreators` (was `client.api.marketplaceCreators2`). Each old name stays as a deprecated alias.
 - Query fields the API refuses a request without are now required: `code` on GET /api/v1/creator-stats/connect/{platform}/callback, `state` on GET /api/v1/creator-stats/connect/{platform}/callback, `key` on GET /api/v1/uploads/avatar, `id` on GET /api/v1/uploads/deliverable, `key` on GET /api/v1/uploads/merchant-asset.
